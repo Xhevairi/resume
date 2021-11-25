@@ -1,0 +1,313 @@
+- Create django structure
+    $mkdr resume
+    $cd resume
+    $ resume>py -m venv venv_r
+    $resume> venv_r\Scripts\activate
+    - upgrade pip (v.o make it before installing django; sometimes it modify pip dir in venv. Take care!): 
+        $ (venv_r) PS F:\django_projects\dj-resume\resume> python -m pip install --upgrade pip
+        $ (venv_r) PS F:\django_projects\dj-resume\resume> pip --version
+
+    $ (venv_r) PS F:\django_projects\dj-resume\resume> mkdr dev-docs 
+    $ (venv_r) PS F:\django_projects\dj-resume\resume> cd dev-docs 
+    - in dev-docs create todos.txt 
+    - create .env 
+    - create .gitignore
+        - add .env, venv_r, dev-docs 
+    - add README.md 
+
+    - install django, Pillow, django-ckeditor
+        $ (venv_r) PS F:\django_projects\dj-resume\resume> pip install django Pillow django-ckeditor
+
+    - create requirements.txt:
+        $ (venv_r) PS F:\django_projects\dj-resume\resume> pip freeze > requirements.txt 
+        
+- login github Xhevairi
+    - create new repo: resume
+ or   create a new repository on the command line
+        echo "# resume" >> README.md
+    - push your project:
+        git init
+        git add README.md
+        git commit -m "first commit"
+        git branch -M main
+        git remote add origin https://github.com/Xhevairi/resume.git
+        git push -u origin main
+
+- start django project:
+    $ django-admin startproject resume .
+
+- start app:
+    $ py manage.py startapp core
+
+- add your app and ckeditor to settings.py   
+    'core.apps.CoreConfig',
+    'ckeditor',
+
+- in resume, create context_processors.py 
+
+from django.contrib.auth.models import User
+
+    def project_context(request):
+        context = {
+            'me': User.objects.first(),
+        }
+        return context 
+
+and add it to settings.py
+     # 'resume.context_processors.project_context',
+
+- set language code 'en-gb'
+
+- create static and media folder
+    - make configs in settings.py 
+    import os 
+    
+        STATICFILES_DIRS = [
+            os.path.join(BASE_DIR, 'static'),
+            os.path.join(BASE_DIR, 'media'),
+        ]
+
+        # STATICFILES_DIRS = [
+        #     BASE_DIR / 'static',
+        #     BASE_DIR / 'media',
+        # ]
+
+        STATIC_URL = '/static/'
+        STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+        MEDIA_URL = '/media/'
+        MEDIA_ROOT = BASE_DIR / 'mediafiles'
+
+- core/models.py, create models 
+
+    from django.db import models
+    from django.contrib.auth.models import User
+    from django.template.defaultfilters import slugify
+    from django.fields import RichTextField
+
+
+    class Skill(models.Model):
+        name = models.CharField(max_length=20, blank=True, null=True)
+        score = models.IntegerField(default=80, blank=True, null=True) 
+        image = models.FileField(upload_to='skills', blank=True, null=True)
+        is_key_skill = models.BooleanField(default=False)
+
+        class Meta:
+            verbose_name = 'Skill'
+            verbose_name_plural = 'Skills'
+        
+        def __str__(self):
+            return self.name 
+
+
+    class UserProfile(models.Model):
+        user = models.OneToOneField(User, on_delete=models.CASCADE)
+        avatar = models.ImageField(upload_to='avatar', blank=True, null=True)
+        title = models.CharField(max_length=200, blank=True, null=True)
+        bio = models.TextField(blank=True, null=True)
+        skills = models.ManyToManyField(Skill, blank=True)
+        cv = models.FileField(upload_to='cv', blank=True, null=True)
+
+        class Meta:
+            verbose_name = 'UserProfile'
+            verbose_name_plural = 'UserProfiles'
+        
+        def __str__(self):
+            return f'{self.user.first_name} {self.user.last_name}' 
+
+
+    class ContactProfile(models.Model):
+        timestamp = models.DateTimeField(auto_now_add=True)
+        name = models.CharField(max_length=100, verbose_name='Name')
+        email = models.EmailField(verbose_name='Email')
+        message = models.TextField(verbose_name='Message')
+
+        class Meta:
+            verbose_name = 'Contact Profile'
+            verbose_name_plural = 'Contact Profiles'
+            ordering = ['timestamp']
+        
+        def __str__(self):
+            return f'{self.name}'
+
+
+    class Testemonial(models.Model):
+        thumbnail = models.ImageField(upload_to='thumbnail', blank=True, null=True)
+        name = models.CharField(max_length=200, blank=True, null=True) 
+        role = models.CharField(max_length=200, blank=True, null=True) 
+        quote = models.CharField(max_length=500, blank=True, null=True)
+        is_active = models.BooleanField(default=True)
+
+        class Meta:
+            verbose_name = 'Testemonial'
+            verbose_name_plural = 'Testemonials'
+            ordering = ['name']
+        
+        def __str__(self):
+            return self.name
+
+
+    class Media(models.Model):
+        image = models.ImageField(upload_to='media')
+        url = models.URLField(blank=True, null=True)
+        name = models.CharField(max_length=200, blank=True, null=True)
+        is_image = models.BooleanField(default=True)
+
+        class Meta:
+            verbose_name = 'Media'
+            verbose_name_plural = 'Media Files'
+            ordering = ['name']
+        
+        def save(self, *args, **kwargs):
+            if self.url:
+                self.is_image = False
+            super(Media, self).save(*args, **kwargs)
+
+
+    class Portfolio(models.Model):
+        date = models.DateTimeField(blank=True, null=True)
+        name = models.CharField(max_length=200, blank=True, null=True)
+        description = models.CharField(max_length=500, blank=True, null=True)
+        body = RichTextField(blank=True, null=True)
+        image = models.ImageField(upload_to='portfolio', blank=True, null=True)
+        slug = models.SlugField(blank=True, null=True)
+        is_active = models.BooleanField(default=True)
+
+        class Meta:
+            verbose_name = 'Portfolio'
+            verbose_name_plural = 'Portfolio Profiles'
+            ordering = ['name']
+        
+        def save(self, *args, **kwargs):
+            if not self.id:
+                self.slug = slugify(self.name)
+            super(Portfolio, self).save(*args, **kwargs)
+        
+        def get_absolute_url(self):
+            # from django.core.urlresolvers import reverse
+            # return reverse('', kwargs={'pk': self.pk})
+            return f'/portfolio/{self.slug}'
+
+
+    class Certificate(models.Model):
+        date = models.DateTimeField(blank=True, null=True)
+        name = models.CharField(max_length=50, blank=True, null=True)
+        title = models.CharField(max_length=200, blank=True, null=True)
+        description = models.CharField(max_length=500, blank=True, null=True)
+        is_active = models.BooleanField(default=True)
+
+        class Meta:
+            verbose_name = 'Certificate'
+            verbose_name_plural = 'Certificates'
+        
+        def __str__(self):
+            return self.name
+
+
+- register models in core/admin.py:
+
+    from django.contrib import admin
+    from .models import (
+        UserProfile,
+        ContactProfile,
+        Testemonial,
+        Media,
+        Portfolio,
+        # Blog,
+        Certificate,
+        Skill
+    )
+
+    @admin.register(UserProfile)
+    class UserProfileAdmin(admin.ModelAdmin):
+        list_display = ('id', 'user',)
+
+    @admin.register(ContactProfile)
+    class ContactAdmin(admin.ModelAdmin):
+        list_display = ('id', 'timestamp', 'name',)
+
+    @admin.register(Testemonial)
+    class TestemonialAdmin(admin.ModelAdmin):
+        list_display = ('id', 'name', 'is_active',)
+
+    @admin.register(Media)
+    class MediaAdmin(admin.ModelAdmin):
+        list_display = ('id', 'name',)
+
+    @admin.register(Portfolio)
+    class PortfolioAdmin(admin.ModelAdmin):
+        list_display = ('id', 'name', 'is_active',)
+        readonly_fields = ('slug',)
+
+    # @admin.register(Blog)
+    # class BlogAdmin(admin.ModelAdmin):
+    #     list_display = ('id', 'name', 'is_active',)
+    #     readonly_fields = ('slug',)
+
+    @admin.register(Certificate)
+    class CertificateAdmin(admin.ModelAdmin):
+        list_display = ('id', 'name',)
+
+    @admin.register(Skill)
+    class SkillAdmin(admin.ModelAdmin):
+        list_display = ('id', 'name', 'score',)
+
+
+- a way of creating the userprofile using signals:
+    - create file core/signals.py 
+        from django.db.models.signals import post_save
+        from django.contrib.auth.models import User 
+        from django.dispatch import receiver
+        from .models import UserProfile
+
+        @receiver(post_save, sender=User)
+        def create_profile(sender, instance, created, **kwargs):
+            if created:
+                userprofile = UserProfile.objects.create(user=instance)
+
+    - register signals to apps.py, by overwriting ready method:
+        from django.apps import AppConfig
+
+        class CoreConfig(AppConfig):
+            default_auto_field = 'django.db.models.BigAutoField'
+            name = 'core'
+
+            # overwrite ready method
+            def ready(self):
+                import core.signals
+
+- create model forms: forms.py 
+    
+
+- in core folder, create urls.py 
+
+    from django.urls import path
+    from . import views
+
+
+    app_name = 'core'
+
+    urlpatterns = [
+        path('', views.IndexView.as_view(), name = 'home'),
+        path('contact/', views.ContactView.as_view(), name = 'contact'),
+        path('portofolio/', views.PortofolioView.as_view(), name = 'portofolio'),
+        path('portofolio/<slug:slug>', views.PortofolioDetailView.as_view(), name = 'portofolio'),
+        path('blog/', views.BlogView.as_view(), name = 'blog'),
+        path('blog/<slug:slug>', views.BlogDetailView.as_view(), name = 'blog'),
+    ]
+
+
+- in resume/urls.py add include, settings, and static 
+        from django.contrib import admin
+        from django.urls import path, include 
+        from django.conf import settings
+        from django.conf.urls.static import static
+
+        urlpatterns = [
+            path('admin/', admin.site.urls),
+            path('', include('core.urls', namespace = 'core')),
+        ]
+
+        if settings.DEBUG:
+            urlpatterns += static(settings.STATIC_URL, document_root = settings.STATIC_ROOt),
+            urlpatterns += static(settings.MEDIA_URL, document_root = settings.MEDIA_ROOT)
