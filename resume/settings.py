@@ -55,8 +55,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
 
-                # resume
-                # 'resume.context_processors.project_context',
+                # resume project
+                'resume.context_processors.project_context',
             ],
         },
     },

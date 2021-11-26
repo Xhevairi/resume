@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
-from django.fields import RichTextField
+from ckeditor.fields import RichTextField
 
 
 class Skill(models.Model):
@@ -49,7 +49,7 @@ class ContactProfile(models.Model):
         return f'{self.name}'
 
 
-class Testemonial(models.Model):
+class Testimonial(models.Model):
     thumbnail = models.ImageField(upload_to='thumbnail', blank=True, null=True)
     name = models.CharField(max_length=200, blank=True, null=True) 
     role = models.CharField(max_length=200, blank=True, null=True) 
@@ -57,8 +57,8 @@ class Testemonial(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        verbose_name = 'Testemonial'
-        verbose_name_plural = 'Testemonials'
+        verbose_name = 'Testimonial'
+        verbose_name_plural = 'Testimonials'
         ordering = ['name']
     
     def __str__(self):
@@ -101,6 +101,9 @@ class Portfolio(models.Model):
             self.slug = slugify(self.name)
         super(Portfolio, self).save(*args, **kwargs)
     
+    def __str__(self):
+        return self.name
+
     def get_absolute_url(self):
         # from django.core.urlresolvers import reverse
         # return reverse('', kwargs={'pk': self.pk})
@@ -120,3 +123,30 @@ class Certificate(models.Model):
     
     def __str__(self):
         return self.name
+
+
+class Blog(models.Model):    
+    class Meta:
+        verbose_name_plural = 'Blog Profiles'
+        verbose_name = 'Blog'
+        ordering = ["timestamp"]
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+    author = models.CharField(max_length=200, blank=True, null=True)
+    name = models.CharField(max_length=200, blank=True, null=True)
+    description = models.CharField(max_length=500, blank=True, null=True)
+    body = RichTextField(blank=True, null=True)
+    slug = models.SlugField(null=True, blank=True)
+    image = models.ImageField(blank=True, null=True, upload_to="blog")
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.slug = slugify(self.name)
+        super(Blog, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return f"/blog/{self.slug}"
