@@ -1,4 +1,4 @@
-Resume in pdf
+Resume Builder
 --------------
 
-It is a demo: create a resume in pdf
+It is a demo: create a resume.
